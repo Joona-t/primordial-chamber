@@ -175,6 +175,56 @@ Do not implement yet.
 
 ---
 
+# Codex Chamber Orchestrator Plan
+
+Date: 2026-06-01
+Status: implementing after explicit approval
+
+## Scope
+
+Add a Codex-owned orchestration layer for the two-seat chamber.
+
+The orchestrator should:
+
+- accept one message;
+- invoke OpenClaw via the existing adapter;
+- accept optional Codex voice text;
+- build a two-seat chamber;
+- persist the chamber through `PrimordialHarness`;
+- return a compact structured result.
+
+## Non-Goals
+
+- No Hermes slash command yet.
+- No model tool schema yet.
+- No direct OpenClaw queue-file writes.
+- No automatic recursive call into this current assistant session.
+- No UI.
+
+## Implementation Tasks
+
+- [x] Add `agent/primordial/orchestrator.py`.
+- [x] Add `CodexChamberOrchestrator`.
+- [x] Add `run_two_seat_chamber()` method.
+- [x] Add `scripts/primordial_chamber.py` CLI.
+- [x] Add tests for successful orchestration with fake OpenClaw runner.
+- [x] Add tests for missing Codex text typed absence.
+- [x] Add tests for OpenClaw failure still recording a chamber.
+- [x] Export orchestrator helpers in `agent/primordial/__init__.py`.
+- [x] Update `BUGS_AND_ITERATIONS.md`.
+- [x] Run targeted Primordial tests.
+- [x] Run compile check.
+- [x] Review diff.
+
+## Verification Commands
+
+```bash
+pytest tests/agent/primordial -o 'addopts=' -q
+python3 -m compileall -q agent/primordial scripts/primordial_chamber.py tests/agent/primordial
+```
+
+---
+
 # Two-Seat Chamber Plan
 
 Date: 2026-06-01

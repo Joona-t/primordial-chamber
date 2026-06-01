@@ -19,6 +19,7 @@ from .openclaw_adapter import (
     normalize_openclaw_json,
     run_openclaw_agent,
 )
+from .orchestrator import ChamberOrchestrationResult, CodexChamberOrchestrator
 
 __all__ = [
     "AbsenceState",
@@ -39,4 +40,6 @@ __all__ = [
     "OpenClawAgentResult",
     "normalize_openclaw_json",
     "run_openclaw_agent",
+    "ChamberOrchestrationResult",
+    "CodexChamberOrchestrator",
 ]

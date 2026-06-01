@@ -1,5 +1,13 @@
 # Bugs and Iterations
 
+## 2026-06-01 - Codex Chamber Orchestrator Tool
+
+Problem: The two-seat chamber existed as library pieces but did not have a Codex-owned orchestration entrypoint an operator could run.
+
+Root cause: OpenClaw invocation, chamber construction, and persistence were separate primitives without a command-level workflow.
+
+Fix: Added `CodexChamberOrchestrator`, a `scripts/primordial_chamber.py run` CLI, and fake-runner tests for success, missing Codex text, and OpenClaw failure.
+
 ## 2026-06-01 - Two-Seat Primordial Chamber
 
 Problem: Hermes had chamber record primitives but no practical way to capture one message across both Codex and OpenClaw seats.

@@ -498,3 +498,95 @@ The chamber can be brought up in two careful steps:
 2. Add the interactive "one message, two sessions" workflow that sends the prompt to OpenClaw and stores the current Hermes/Codex voice once it exists.
 
 Do not write directly to OpenClaw queue files in v1. Use `openclaw agent --json --session-key ... --message ...`.
+
+---
+
+# Codex Chamber Orchestrator Research
+
+Date: 2026-06-01
+Status: research for implementation
+
+## Goal
+
+Make Codex the primary chamber orchestrator for Hermes/Primordial:
+
+- Codex owns the protocol and persistent chamber state.
+- OpenClaw is a chamber seat invoked through the CLI adapter.
+- Codex output can be provided explicitly by the current session or left as typed absence until finalized.
+- Records use the existing `chamber_record` schema and `PrimordialStore`.
+
+## Current Gap
+
+The previous implementation added:
+
+- OpenClaw CLI result normalization;
+- `build_two_seat_chamber()`;
+- `PrimordialHarness.record_chamber()`.
+
+But there is not yet a single tool/entrypoint that an operator can run to:
+
+1. send the message to OpenClaw;
+2. assemble the two-seat chamber;
+3. persist the record;
+4. print the stored chamber path/JSON for inspection.
+
+Without this orchestrator layer, the architecture exists as library pieces but is awkward to operate.
+
+## Recommended Tool Shape
+
+Add a small stdlib-only CLI:
+
+```text
+python3 scripts/primordial_chamber.py run --message "..." [--codex-text "..."]
+```
+
+Default behavior:
+
+- calls `openclaw agent --json --session-key agent:main:primordial-chamber`;
+- builds a chamber with:
+  - `codex` voice = provided `--codex-text`, or typed `not_generated`;
+  - `openclaw` voice = OpenClaw result, or typed failure;
+- stores the chamber through `PrimordialHarness`;
+- prints compact JSON with `record_type`, `record_path`, `openclaw.ok`, and voice states.
+
+Why a script first:
+
+- no plugin registration risk;
+- no prompt/tool schema churn;
+- easy to test with fake runner at module level;
+- useful immediately from Codex terminal execution.
+
+Later:
+
+- expose as a Hermes slash command or built-in model tool after the protocol stabilizes.
+
+## Data Flow
+
+```text
+user message
+  -> Codex orchestrator
+     -> OpenClaw CLI adapter
+     -> Codex voice text/typed absence
+     -> build_two_seat_chamber()
+     -> PrimordialHarness.record_chamber()
+     -> $HERMES_HOME/primordial/records.jsonl
+```
+
+## Failure Handling
+
+- OpenClaw command missing -> `not_invoked`
+- OpenClaw timeout/nonzero exit -> `unresolved`
+- invalid OpenClaw JSON -> `invalid`
+- missing Codex text -> `not_generated`
+
+All failure states are part of the chamber metadata. The command should still emit a chamber record unless the local store itself fails.
+
+## Verification
+
+Tests should avoid live OpenClaw:
+
+- fake OpenClaw runner returns successful JSON;
+- orchestrator persists chamber record;
+- missing Codex text is recorded as typed absence;
+- OpenClaw failure still persists a chamber record;
+- CLI argument parsing can run with fake orchestration only if needed; unit tests on the orchestrator are higher value than subprocessing the script.
