@@ -1,5 +1,13 @@
 # Bugs and Iterations
 
+## 2026-06-01 - Primordial Delegation Harness
+
+Problem: Subagent artifact verification existed only in the immediate delegation result, so Hermes had no persistent Primordial ledger for child outcomes.
+
+Root cause: The initial forge-lite integration added primitives and artifact hashes but did not yet wire them to an append-only runtime recorder.
+
+Fix: Added a passive `PrimordialHarness`, unit tests, and failure-safe delegation completion recording to `$HERMES_HOME/primordial/records.jsonl`.
+
 ## 2026-06-01 - Primordial Forge-Lite Integration
 
 Problem: Hermes needed a deterministic way to preserve typed absence, source references, reversible summaries, chamber records, and verified subagent artifact metadata without importing the full Primordial research repo.

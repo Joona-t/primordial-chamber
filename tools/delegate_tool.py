@@ -1843,6 +1843,21 @@ def _run_single_child(
             artifact_candidates,
             allowed_paths=artifact_candidates,
         )
+        try:
+            from agent.primordial.harness import record_delegation_safely
+
+            record_delegation_safely(
+                parent_session_id=getattr(parent_agent, "session_id", None),
+                child_result=entry,
+                verified_artifacts=entry["artifacts"],
+                metadata={
+                    "child_task_id": child_task_id,
+                    "subagent_id": _subagent_id,
+                    "role": getattr(child, "_delegate_role", None),
+                },
+            )
+        except Exception:
+            logger.debug("Primordial harness import or record failed", exc_info=True)
 
         _output_tail = _extract_output_tail(result, max_entries=8, max_chars=600)
 

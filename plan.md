@@ -130,21 +130,21 @@ Artifact rules:
 
 ## Implementation Tasks
 
-- [ ] Add `agent/primordial/harness.py`.
-- [ ] Add `PrimordialHarness` with injectable `PrimordialStore`.
-- [ ] Add `record_delegation()` for normalized delegation result records.
-- [ ] Add helper for summary typed absence classification.
-- [ ] Add helper for compact delegation source refs.
-- [ ] Add unit tests for successful delegation with summary and artifacts.
-- [ ] Add unit tests for delegation with no summary -> typed absence.
-- [ ] Add unit tests for missing/rejected artifacts staying visible.
-- [ ] Add unit tests that records round-trip through `PrimordialStore`.
-- [ ] Wire `tools/delegate_tool.py` to call the harness after child result assembly.
-- [ ] Ensure harness failures are logged and do not break delegation.
-- [ ] Update `BUGS_AND_ITERATIONS.md`.
-- [ ] Run targeted Primordial and delegation tests.
-- [ ] Run compile check on touched modules.
-- [ ] Review diff.
+- [x] Add `agent/primordial/harness.py`.
+- [x] Add `PrimordialHarness` with injectable `PrimordialStore`.
+- [x] Add `record_delegation()` for normalized delegation result records.
+- [x] Add helper for summary typed absence classification.
+- [x] Add helper for compact delegation source refs.
+- [x] Add unit tests for successful delegation with summary and artifacts.
+- [x] Add unit tests for delegation with no summary -> typed absence.
+- [x] Add unit tests for missing/rejected artifacts staying visible.
+- [x] Add unit tests that records round-trip through `PrimordialStore`.
+- [x] Wire `tools/delegate_tool.py` to call the harness after child result assembly.
+- [x] Ensure harness failures are logged and do not break delegation.
+- [x] Update `BUGS_AND_ITERATIONS.md`.
+- [x] Run targeted Primordial and delegation tests.
+- [x] Run compile check on touched modules.
+- [x] Review diff.
 
 ## Expected Files
 

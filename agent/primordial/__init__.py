@@ -11,6 +11,7 @@ from .refs import Ref, content_ref, file_ref
 from .summary import ReversibleSummary
 from .chamber import ChamberRecord, ChamberVoice
 from .store import PrimordialStore
+from .harness import PrimordialHarness, classify_summary_absence, record_delegation_safely
 
 __all__ = [
     "AbsenceState",
@@ -23,4 +24,7 @@ __all__ = [
     "ChamberRecord",
     "ChamberVoice",
     "PrimordialStore",
+    "PrimordialHarness",
+    "classify_summary_absence",
+    "record_delegation_safely",
 ]
