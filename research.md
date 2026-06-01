@@ -89,3 +89,220 @@ Two observed failures share the same exception text:
 
 ## Audit verdict
 The current partial fix likely covers the main-turn request-kwarg source of the historical `NoneType` iterable crash. It does not cover the auxiliary Codex response-output source, and it incompletely handles `output is None` in main Codex response backfill. A complete fix should normalize `None` output to an empty sequence in all Codex stream/backfill paths, synthesize from collected items/deltas when possible regardless of `[]` vs `None`, and add regression tests for both main and auxiliary paths.
+
+---
+
+# Primordial Harness Research
+
+Date: 2026-06-01
+Status: research only; do not implement yet
+
+## Goal
+
+Research a dedicated Primordial harness for Hermes that can turn the newly added `agent.primordial` primitives into an auditable run ledger without coupling them directly to the general conversation loop, provider schemas, or memory-learning behavior.
+
+The target is a deterministic harness that records what happened, what was absent, what was summarized, and what can be recovered.
+
+## Current Hermes Facts
+
+Hermes now has a small committed `agent.primordial` package:
+
+- `absence.py`: typed absence states, transition validation, semantic-empty validation.
+- `refs.py`: stable content and file references with SHA-256.
+- `summary.py`: reversible summaries that require source refs when summary text exists.
+- `chamber.py`: simple chamber records with voices, synthesis, and metadata.
+- `store.py`: append-only JSONL records under `$HERMES_HOME/primordial/records.jsonl` by default.
+
+The only active integration seam today is delegation artifact metadata:
+
+- `tools/delegate_tool.py::_run_single_child()` already collects child-written paths from `tools.file_state`.
+- `_verify_artifact_paths()` now hashes child-written files and returns verified/rejected artifact records.
+- This gives the parent structural evidence about child output, but it does not yet write a persistent chamber/run record.
+
+## Relevant Hermes Surfaces
+
+### Session Database
+
+`hermes_state.py` stores durable session and message history in SQLite:
+
+- `sessions`: session metadata, parent session lineage, compression chains, model/config/cost fields.
+- `messages`: role, content, tool call ids, names, arguments, timestamps, platform ids.
+- FTS indexes support search.
+
+Research implication:
+
+The harness should not duplicate the full transcript into JSONL. It should store compact refs to session ids, message ids, tool ids, and hashes where possible. Full session text remains owned by `state.db`.
+
+### Context Compression
+
+`agent/context_compressor.py` already has a strong safety framing:
+
+- compressed summaries are reference-only;
+- latest user message wins;
+- old summaries must not become active instructions;
+- fallback summaries preserve continuity anchors when LLM compression fails.
+
+Research implication:
+
+Primordial should not replace the compressor in v1. The harness should observe compression boundaries and record reversible summary metadata:
+
+- source session id / message window;
+- summary hash;
+- model/provider used;
+- failure typed as `not_generated`, `unresolved`, or `redacted` instead of raw empty output.
+
+### File-State and Delegation
+
+`tools/file_state.py` maintains process-local read/write coordination:
+
+- per-agent reads;
+- last writer per path;
+- `writes_since(exclude_task_id, since_ts, paths)` for child write detection.
+
+Research implication:
+
+This is the best existing signal for artifact provenance during a live run. The harness can consume verified child artifacts after delegation and store file refs. The registry is process-local, so it is not enough for historical reconstruction after restart; persistence must happen at subagent completion time.
+
+### Trajectory Logging
+
+`agent/trajectory.py` writes ShareGPT-style JSONL trajectories but is not the session source of truth.
+
+Research implication:
+
+Trajectory export can be a later sink for Primordial records, not the first storage layer. The harness should target `PrimordialStore` and session refs first.
+
+### Hooks
+
+`tools/delegate_tool.py` fires `subagent_stop` hooks on the parent thread after child results are collected.
+
+Research implication:
+
+Hooks are a clean optional observation point, but the first harness should be direct library code called by delegation/compression/session boundaries. Plugin hooks can mirror records later.
+
+## Harness Shape
+
+The smallest useful harness is an internal recorder, not a new model-facing tool.
+
+Proposed module:
+
+- `agent/primordial/harness.py`
+
+Core object:
+
+- `PrimordialHarness(store=None, session_db=None)`
+
+Core methods:
+
+- `record_session_turn(session_id, message_refs, status, metadata)`
+- `record_tool_call(session_id, tool_call_ref, result_ref_or_absence, metadata)`
+- `record_delegation(parent_session_id, child_result, verified_artifacts, metadata)`
+- `record_compression(parent_session_id, child_session_id, source_message_refs, summary, status, metadata)`
+- `record_chamber(question, voices, synthesis, metadata)`
+
+Each method should produce:
+
+- a `record_type`;
+- a normalized payload validated by `validate_record()`;
+- source refs using `content_ref()` / `file_ref()` or explicit session refs;
+- typed absence for missing summaries, skipped tools, interrupted children, withheld content, failed compression, or deleted artifacts.
+
+## Data Model Needed Before Implementation
+
+The current primitives are enough for simple records, but the harness needs a few conventions before code:
+
+1. Session refs:
+   - kind: `session_message`
+   - uri: `hermes://session/{session_id}/message/{message_id}`
+   - metadata: role, timestamp, optional content hash
+
+2. Tool refs:
+   - kind: `tool_call`
+   - uri: `hermes://session/{session_id}/tool/{tool_call_id}`
+   - metadata: tool name, args hash, result hash if available
+
+3. Delegation refs:
+   - kind: `delegate_run`
+   - uri: `hermes://delegate/{subagent_id}`
+   - metadata: parent session, child task id, role, status, duration
+
+4. Compression refs:
+   - kind: `compression_window`
+   - uri: `hermes://session/{old_session_id}/compression/{new_session_id}`
+   - metadata: source message range, token estimate, summary hash
+
+The existing `Ref` dataclass only supports `id`, `kind`, `uri`, `sha256`, `bytes`, `mime`, and `label`. It does not yet carry arbitrary metadata. Either add a metadata field in a planned pass, or encode metadata in record payloads rather than refs for v1.
+
+## Architecture Recommendation
+
+Implement the harness as a passive recorder with explicit call sites.
+
+Recommended v1 integration order:
+
+1. Delegation completion:
+   - Record one delegation result per child.
+   - Include status, summary or typed absence, verified/rejected artifacts, model, token counts, cost, duration, and source refs.
+   - This is the highest value because subagents are the frontier surface where outputs can vanish or become ungrounded.
+
+2. Manual chamber creation API:
+   - Add deterministic helper to create a `ChamberRecord` from named voices and a synthesis.
+   - Keep it internal first; no user-facing tool until the data contract is stable.
+
+3. Compression boundary:
+   - Record compaction source window and produced summary hash.
+   - Use typed absence on summarizer failure.
+   - Do not alter prompt summary text in this pass.
+
+4. Session/tool refs:
+   - Add ref factories for Hermes session messages and tool calls.
+   - Avoid schema migration unless JSONL records prove insufficient.
+
+Do not implement all integration points at once. Delegation gives immediate signal with limited blast radius.
+
+## Risks
+
+1. False confidence:
+   - Structural provenance says where a result came from; it does not prove semantic truth.
+   - Records must avoid language like "verified answer" unless only hash/path verification is meant.
+
+2. Store growth:
+   - JSONL can grow quickly if full text is stored.
+   - v1 should store hashes and refs, not transcript copies.
+
+3. Privacy:
+   - Hermes may run with sensitive files, credentials, or private chats.
+   - Raw payloads should be withheld/redacted by default when refs/hashes are enough.
+
+4. Coupling:
+   - If harness calls are scattered through hot conversation logic too early, future provider changes get harder.
+   - Start at stable boundaries: delegation completion and compression completion.
+
+5. Ref stability:
+   - Local file paths can move.
+   - File refs should include hash and byte size so moved files can still be recognized if content is available.
+
+## Test Strategy
+
+Required tests before any implementation:
+
+- Harness writes append-only records to a temp `PrimordialStore`.
+- Delegation result with summary and artifacts creates a grounded record.
+- Delegation result with no summary creates typed absence, not empty string.
+- Missing artifact path is rejected with reason, not dropped.
+- Compression success creates summary with source refs.
+- Compression failure creates typed absence.
+- No full sensitive payload is persisted when a hash/ref is enough.
+- Store records are valid JSONL and round-trip through `list_records()`.
+
+Good property-style tests later:
+
+- Absence transitions never move out of terminal states.
+- Every record with summary text has at least one source ref.
+- Every claimed artifact is either verified or rejected; none disappear silently.
+
+## Research Verdict
+
+The Primordial harness is worth doing, but the first implementation should be narrow:
+
+Build a passive `agent.primordial.harness` recorder and wire it only to delegation completion first. That gives Hermes a real frontier ledger for subagent output without changing provider behavior, prompts, memory learning, or compression semantics.
+
+After that is stable, extend the same harness to compression boundaries and manual chamber records.
