@@ -222,21 +222,21 @@ It then:
 
 ## Implementation Tasks
 
-- [ ] Add `agent/primordial/openclaw_adapter.py`.
-- [ ] Add `OpenClawAgentResult` normalization for successful JSON output.
-- [ ] Add timeout/error normalization using typed absence metadata.
-- [ ] Add `agent/primordial/chamber_runner.py`.
-- [ ] Add `record_chamber()` to `PrimordialHarness`.
-- [ ] Add two-seat chamber builder for `codex` + `openclaw`.
-- [ ] Add tests with a fake OpenClaw command runner.
-- [ ] Test successful OpenClaw JSON -> chamber voice.
-- [ ] Test OpenClaw error/timeout -> typed absence metadata.
-- [ ] Test chamber record round-trip through `PrimordialStore`.
-- [ ] Export new helpers in `agent/primordial/__init__.py`.
-- [ ] Update `BUGS_AND_ITERATIONS.md`.
-- [ ] Run targeted Primordial tests.
-- [ ] Run compile check on touched modules.
-- [ ] Review diff.
+- [x] Add `agent/primordial/openclaw_adapter.py`.
+- [x] Add `OpenClawAgentResult` normalization for successful JSON output.
+- [x] Add timeout/error normalization using typed absence metadata.
+- [x] Add `agent/primordial/chamber_runner.py`.
+- [x] Add `record_chamber()` to `PrimordialHarness`.
+- [x] Add two-seat chamber builder for `codex` + `openclaw`.
+- [x] Add tests with a fake OpenClaw command runner.
+- [x] Test successful OpenClaw JSON -> chamber voice.
+- [x] Test OpenClaw error/timeout -> typed absence metadata.
+- [x] Test chamber record round-trip through `PrimordialStore`.
+- [x] Export new helpers in `agent/primordial/__init__.py`.
+- [x] Update `BUGS_AND_ITERATIONS.md`.
+- [x] Run targeted Primordial tests.
+- [x] Run compile check on touched modules.
+- [x] Review diff.
 
 ## Expected Files
 

@@ -1,5 +1,13 @@
 # Bugs and Iterations
 
+## 2026-06-01 - Two-Seat Primordial Chamber
+
+Problem: Hermes had chamber record primitives but no practical way to capture one message across both Codex and OpenClaw seats.
+
+Root cause: The chamber type existed as storage-only structure; OpenClaw CLI normalization and chamber persistence helpers were missing.
+
+Fix: Added an OpenClaw `agent --json` adapter, two-seat chamber builder, chamber persistence in `PrimordialHarness`, and fake-runner tests for success/error paths.
+
 ## 2026-06-01 - Primordial Delegation Harness
 
 Problem: Subagent artifact verification existed only in the immediate delegation result, so Hermes had no persistent Primordial ledger for child outcomes.

@@ -20,6 +20,7 @@ class AbsenceState(str, Enum):
     UNRESOLVED = "unresolved"
     UNKNOWN = "unknown"
     NOT_GENERATED = "not_generated"
+    INVALID = "invalid"
     UNAVAILABLE = "unavailable"
     REDACTED = "redacted"
     DELETED = "deleted"
@@ -37,6 +38,7 @@ _ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
             AbsenceState.UNRESOLVED.value,
             AbsenceState.UNKNOWN.value,
             AbsenceState.NOT_GENERATED.value,
+            AbsenceState.INVALID.value,
             AbsenceState.UNAVAILABLE.value,
             AbsenceState.REDACTED.value,
             AbsenceState.DELETED.value,
@@ -46,6 +48,7 @@ _ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
         {
             AbsenceState.UNRESOLVED.value,
             AbsenceState.UNKNOWN.value,
+            AbsenceState.INVALID.value,
             AbsenceState.UNAVAILABLE.value,
             AbsenceState.REDACTED.value,
             AbsenceState.DELETED.value,
@@ -54,6 +57,7 @@ _ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
     AbsenceState.UNKNOWN.value: frozenset(
         {
             AbsenceState.UNKNOWN.value,
+            AbsenceState.INVALID.value,
             AbsenceState.UNAVAILABLE.value,
             AbsenceState.REDACTED.value,
             AbsenceState.DELETED.value,
@@ -62,6 +66,14 @@ _ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
     AbsenceState.NOT_GENERATED.value: frozenset(
         {
             AbsenceState.NOT_GENERATED.value,
+            AbsenceState.INVALID.value,
+            AbsenceState.REDACTED.value,
+            AbsenceState.DELETED.value,
+        }
+    ),
+    AbsenceState.INVALID.value: frozenset(
+        {
+            AbsenceState.INVALID.value,
             AbsenceState.REDACTED.value,
             AbsenceState.DELETED.value,
         }

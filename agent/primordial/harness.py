@@ -6,6 +6,7 @@ import logging
 from typing import Any, Mapping
 
 from .absence import AbsenceState
+from .chamber import ChamberRecord
 from .refs import content_ref
 from .store import PrimordialStore
 
@@ -87,6 +88,11 @@ class PrimordialHarness:
         if absence_state:
             payload["summary_state"] = absence_state
         return self.store.append("delegation_result", payload)
+
+    def record_chamber(self, chamber: ChamberRecord) -> dict[str, Any]:
+        """Persist one normalized chamber record."""
+
+        return self.store.append("chamber_record", chamber.to_dict())
 
 
 def record_delegation_safely(
