@@ -1,5 +1,13 @@
 # Bugs and Iterations
 
+## 2026-06-01 - Chamber Production Audit
+
+Problem: The chamber workflow had passing unit tests but no written production-readiness audit after applying it against a live OpenClaw path.
+
+Root cause: Fake-runner tests covered the structural protocol, but live OpenClaw Gateway readiness and operator ergonomics were not yet evaluated.
+
+Fix: Ran the live chamber path, confirmed failure is captured as typed absence, and documented missing production work plus optimization order in `docs/primordial/chamber-production-audit.md`.
+
 ## 2026-06-01 - Production Chamber Workflow
 
 Problem: The chamber orchestrator could write records but lacked production operator basics: stable IDs, pending/finalized lifecycle, list/show inspection, and documentation.
