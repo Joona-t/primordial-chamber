@@ -306,3 +306,195 @@ The Primordial harness is worth doing, but the first implementation should be na
 Build a passive `agent.primordial.harness` recorder and wire it only to delegation completion first. That gives Hermes a real frontier ledger for subagent output without changing provider behavior, prompts, memory learning, or compression semantics.
 
 After that is stable, extend the same harness to compression boundaries and manual chamber records.
+
+---
+
+# Two-Seat Chamber Research
+
+Date: 2026-06-01
+Status: research only; do not implement yet
+
+## User Goal
+
+Get the chamber up and running with one user message sent to two chat sessions:
+
+- the current Hermes/Codex session;
+- an OpenClaw session.
+
+The result should become a Primordial chamber record with both voices preserved.
+
+## Current Capabilities
+
+Hermes now has:
+
+- `agent.primordial.ChamberRecord`
+- `ChamberVoice`
+- `ReversibleSummary`
+- `PrimordialStore`
+- `PrimordialHarness` for delegation records
+
+This is enough to persist a chamber record once two outputs exist.
+
+OpenClaw is installed locally:
+
+```text
+/opt/homebrew/bin/openclaw
+```
+
+Relevant command:
+
+```text
+openclaw agent --message <text> --json --session-key <key> --timeout <seconds>
+```
+
+OpenClaw help confirms:
+
+- `openclaw agent` runs one agent turn via the Gateway;
+- `--message` provides the prompt;
+- `--json` returns machine-readable output;
+- `--session-id` or `--session-key` targets an explicit session;
+- `--agent <id>` can select an agent;
+- `--local` exists but requires provider keys in the shell.
+
+OpenClaw also has:
+
+- `openclaw sessions --json`
+- `openclaw transcripts list/show/path`
+
+The local OpenClaw state includes `~/.openclaw/tui/last-session.json`, with active session keys such as `agent:main:main` and `agent:crestodian:main`.
+
+## Old OpenClaw Queue Research
+
+The older Primordial research identified Zarathustra as OpenClaw and described a queue-based runtime:
+
+- queue file: `~/.openclaw/workspace/out/console_queue.jsonl`
+- state file: `~/.openclaw/workspace/out/console_queue_state.json`
+- ledger file: `~/.openclaw/workspace/out/queue_ledger.jsonl`
+
+That remains useful as historical provenance research, but the current local OpenClaw CLI exposes a higher-level `agent` command. For a practical v1 chamber, use the CLI agent turn instead of writing queue files directly.
+
+## Architecture Options
+
+### Option A: Tool-Like Chamber Command In Hermes
+
+Add a deterministic Python module that:
+
+1. accepts a message;
+2. calls a local Hermes/Codex responder interface or records the current assistant response;
+3. invokes `openclaw agent --json --session-key agent:main:primordial-chamber --message <message>`;
+4. normalizes both outputs into `ChamberVoice`;
+5. creates a `ChamberRecord`;
+6. stores it through `PrimordialStore`.
+
+Pros:
+
+- direct, testable, simple;
+- keeps the chamber record in Hermes;
+- no UI needed;
+- no OpenClaw internal imports.
+
+Cons:
+
+- needs a clear boundary for "Codex voice" because the current assistant turn is already happening outside a reusable `call_llm()` wrapper.
+
+### Option B: Delegate-Based Chamber
+
+Use Hermes delegation for one seat and OpenClaw CLI for the other.
+
+Pros:
+
+- reuses existing subagent machinery and ledger.
+
+Cons:
+
+- user asked specifically for "you & OpenClaw"; spawning a Hermes child agent is not exactly this current session;
+- more moving parts than v1 requires.
+
+### Option C: OpenClaw Queue Adapter
+
+Write directly to OpenClaw queue/ledger files.
+
+Pros:
+
+- close to original Primordial OpenClaw integration.
+
+Cons:
+
+- bypasses the current supported CLI surface;
+- higher risk of corrupting state;
+- old queue paths may not match the current OpenClaw Gateway/session model.
+
+## Recommended v1
+
+Build a local `primordial_chamber` runner in Hermes, but keep it non-model-facing at first.
+
+Practical first milestone:
+
+- add chamber record helpers to `PrimordialHarness`;
+- add an OpenClaw CLI adapter that can run one OpenClaw turn and normalize JSON output;
+- add a "two-seat chamber" function that takes:
+  - message;
+  - Hermes/Codex voice text;
+  - OpenClaw voice text or OpenClaw command output;
+  - session metadata;
+- persist the `ChamberRecord`.
+
+This avoids trying to recursively call the current assistant from inside itself. The current Hermes/Codex voice can be passed in after the assistant produces it, or collected by a CLI command in a later pass.
+
+Second milestone:
+
+- expose a command that sends the message to OpenClaw immediately and emits a chamber prompt for the current Hermes/Codex session to answer;
+- after the current answer exists, seal/store the full chamber.
+
+## Data Contract
+
+Record type:
+
+```text
+chamber_record
+```
+
+Voice names:
+
+- `codex`
+- `openclaw`
+
+Each voice should include:
+
+- `name`
+- `stance`
+- `summary`
+- `source_refs`
+
+Source refs:
+
+- Codex voice: `hermes://session/{session_id}/message/{message_id}` when available; otherwise content hash ref.
+- OpenClaw voice: `openclaw://session/{session_key}` plus content hash ref.
+
+Typed absence:
+
+- OpenClaw timeout -> voice summary `""`, summary state `unresolved` in metadata.
+- OpenClaw missing JSON output -> `invalid`.
+- OpenClaw command unavailable -> `not_invoked`.
+- Codex voice not provided yet -> `not_generated`.
+
+## Verification Needs
+
+Tests should use a fake command runner, not call real OpenClaw.
+
+Required tests:
+
+- OpenClaw JSON output is parsed into a voice.
+- OpenClaw command timeout/error becomes typed absence.
+- Two voices create a valid `ChamberRecord`.
+- Chamber record round-trips through `PrimordialStore`.
+- No raw command stderr is persisted unless explicitly included as redacted metadata.
+
+## Research Verdict
+
+The chamber can be brought up in two careful steps:
+
+1. Implement chamber persistence and an OpenClaw CLI adapter with fake-runner tests.
+2. Add the interactive "one message, two sessions" workflow that sends the prompt to OpenClaw and stores the current Hermes/Codex voice once it exists.
+
+Do not write directly to OpenClaw queue files in v1. Use `openclaw agent --json --session-key ... --message ...`.

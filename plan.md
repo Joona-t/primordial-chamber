@@ -172,3 +172,106 @@ implement it all
 ```
 
 Do not implement yet.
+
+---
+
+# Two-Seat Chamber Plan
+
+Date: 2026-06-01
+Status: planned; do not implement yet
+
+## Scope
+
+Bring up a v1 Primordial chamber that can represent one user message answered by two seats:
+
+- `codex`: the current Hermes/Codex-side voice;
+- `openclaw`: an OpenClaw `agent` CLI turn.
+
+The v1 implementation should persist chamber records and provide a deterministic OpenClaw adapter. It should not directly mutate OpenClaw queue files.
+
+## Non-Goals
+
+- No UI.
+- No direct OpenClaw queue-file writes.
+- No new provider schema.
+- No automatic recursive call to the current assistant from inside the same turn.
+- No SQLite migration.
+- No full transcript duplication.
+
+## Design
+
+Add a chamber runner layer under `agent/primordial/`:
+
+- `openclaw_adapter.py`: run and normalize `openclaw agent --json`.
+- `chamber_runner.py`: build and store `ChamberRecord` values.
+
+The runner accepts:
+
+- the original message;
+- Codex voice text if available;
+- OpenClaw voice text or adapter result;
+- metadata such as Hermes session id and OpenClaw session key.
+
+It then:
+
+1. creates source refs;
+2. creates `ChamberVoice` records;
+3. creates a `ReversibleSummary` from both voice refs;
+4. creates a `ChamberRecord`;
+5. appends it to `PrimordialStore` as `chamber_record`.
+
+## Implementation Tasks
+
+- [ ] Add `agent/primordial/openclaw_adapter.py`.
+- [ ] Add `OpenClawAgentResult` normalization for successful JSON output.
+- [ ] Add timeout/error normalization using typed absence metadata.
+- [ ] Add `agent/primordial/chamber_runner.py`.
+- [ ] Add `record_chamber()` to `PrimordialHarness`.
+- [ ] Add two-seat chamber builder for `codex` + `openclaw`.
+- [ ] Add tests with a fake OpenClaw command runner.
+- [ ] Test successful OpenClaw JSON -> chamber voice.
+- [ ] Test OpenClaw error/timeout -> typed absence metadata.
+- [ ] Test chamber record round-trip through `PrimordialStore`.
+- [ ] Export new helpers in `agent/primordial/__init__.py`.
+- [ ] Update `BUGS_AND_ITERATIONS.md`.
+- [ ] Run targeted Primordial tests.
+- [ ] Run compile check on touched modules.
+- [ ] Review diff.
+
+## Expected Files
+
+- Create: `agent/primordial/openclaw_adapter.py`
+- Create: `agent/primordial/chamber_runner.py`
+- Create: `tests/agent/primordial/test_openclaw_adapter.py`
+- Create: `tests/agent/primordial/test_chamber_runner.py`
+- Modify: `agent/primordial/harness.py`
+- Modify: `agent/primordial/__init__.py`
+- Modify: `BUGS_AND_ITERATIONS.md`
+- Modify: `plan.md`
+
+## Verification Commands
+
+```bash
+pytest tests/agent/primordial -o 'addopts=' -q
+python3 -m compileall -q agent/primordial tests/agent/primordial
+```
+
+## Open Question For Implementation
+
+Default OpenClaw target:
+
+```text
+agent:main:primordial-chamber
+```
+
+This keeps chamber runs separate from the normal `agent:main:main` session unless Joona asks to target main directly.
+
+## Approval Gate
+
+Implementation may begin only after Joona explicitly says:
+
+```text
+implement it all
+```
+
+Do not implement yet.
