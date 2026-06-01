@@ -58,3 +58,117 @@ auxiliary title generation.
 
 ## Follow-up: Primordial Harness
 Research a dedicated Primordial agent harness as a separate feature. The likely shape is a narrow, deterministic harness that runs Primordial primitives and verification records without coupling them to the general Hermes conversation loop.
+
+---
+
+# Primordial Harness Plan
+
+Date: 2026-06-01
+Status: planned; do not implement yet
+
+## Scope
+
+Implement a passive `agent.primordial.harness` recorder and wire it only to delegation completion in v1.
+
+The harness will persist auditable Primordial records for subagent results:
+
+- status and lifecycle outcome;
+- summary text or typed absence;
+- verified/rejected child artifacts;
+- model, token, cost, duration metadata;
+- stable source refs where available.
+
+This is a ledger layer, not a new model-facing tool.
+
+## Non-Goals
+
+- No prompt changes.
+- No provider/schema changes.
+- No autonomous memory learning.
+- No compression behavior changes.
+- No UI changes.
+- No SQLite migration in this pass.
+- No full transcript duplication into JSONL.
+
+## Data Contract
+
+Use `PrimordialStore` as the persistence layer.
+
+Record type:
+
+```text
+delegation_result
+```
+
+Required payload fields:
+
+- `parent_session_id`
+- `task_index`
+- `status`
+- `summary` or `summary_state`
+- `artifacts`
+- `model`
+- `tokens`
+- `cost_usd`
+- `duration_seconds`
+- `source_refs`
+- `metadata`
+
+Typed absence rules:
+
+- no summary + timeout/interrupted/error -> `summary_state: unresolved`
+- no summary + completed/no output -> `summary_state: not_generated`
+- withheld/redacted content -> `summary_state: redacted`
+- unavailable source data -> typed absence object, not raw empty string
+
+Artifact rules:
+
+- every claimed artifact is either in `verified` or `rejected`;
+- verified artifacts include path, byte count, SHA-256;
+- rejected artifacts include path and reason;
+- no artifact path disappears silently.
+
+## Implementation Tasks
+
+- [ ] Add `agent/primordial/harness.py`.
+- [ ] Add `PrimordialHarness` with injectable `PrimordialStore`.
+- [ ] Add `record_delegation()` for normalized delegation result records.
+- [ ] Add helper for summary typed absence classification.
+- [ ] Add helper for compact delegation source refs.
+- [ ] Add unit tests for successful delegation with summary and artifacts.
+- [ ] Add unit tests for delegation with no summary -> typed absence.
+- [ ] Add unit tests for missing/rejected artifacts staying visible.
+- [ ] Add unit tests that records round-trip through `PrimordialStore`.
+- [ ] Wire `tools/delegate_tool.py` to call the harness after child result assembly.
+- [ ] Ensure harness failures are logged and do not break delegation.
+- [ ] Update `BUGS_AND_ITERATIONS.md`.
+- [ ] Run targeted Primordial and delegation tests.
+- [ ] Run compile check on touched modules.
+- [ ] Review diff.
+
+## Expected Files
+
+- Create: `agent/primordial/harness.py`
+- Create: `tests/agent/primordial/test_harness.py`
+- Modify: `agent/primordial/__init__.py`
+- Modify: `tools/delegate_tool.py`
+- Modify: `BUGS_AND_ITERATIONS.md`
+- Modify: `plan.md`
+
+## Verification Commands
+
+```bash
+pytest tests/agent/primordial tests/tools/test_delegate_artifacts.py -o 'addopts=' -q
+pytest tests/tools/test_delegate.py tests/tools/test_delegate_artifacts.py -o 'addopts=' -q
+python3 -m compileall -q agent/primordial tools/delegate_tool.py tests/agent/primordial tests/tools/test_delegate_artifacts.py
+```
+
+## Approval Gate
+
+Implementation may begin only after Joona explicitly says:
+
+```text
+implement it all
+```
+
+Do not implement yet.
