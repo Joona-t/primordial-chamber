@@ -17,6 +17,7 @@ never the child's intermediate tool calls or reasoning.
 """
 
 import enum
+import hashlib
 import json
 import logging
 
@@ -219,6 +220,59 @@ def list_active_subagents() -> List[Dict[str, Any]]:
             {k: v for k, v in r.items() if k != "agent"}
             for r in _active_subagents.values()
         ]
+
+
+def _verify_artifact_paths(
+    artifact_paths: List[str],
+    *,
+    allowed_paths: List[str],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Hash and verify child-written artifact paths.
+
+    A subagent may only claim artifacts that file_state recorded as writes for
+    that child. Missing files and unclaimed paths are kept as typed rejection
+    records instead of silently disappearing.
+    """
+    allowed_resolved = set()
+    for p in allowed_paths or []:
+        try:
+            allowed_resolved.add(str(os.path.abspath(os.path.expanduser(p))))
+        except Exception:
+            continue
+
+    verified: List[Dict[str, Any]] = []
+    rejected: List[Dict[str, Any]] = []
+    for raw in artifact_paths or []:
+        path_text = str(raw)
+        try:
+            resolved = os.path.abspath(os.path.expanduser(path_text))
+        except Exception:
+            rejected.append({"path": path_text, "reason": "invalid_path"})
+            continue
+
+        if resolved not in allowed_resolved:
+            rejected.append({"path": resolved, "reason": "not_child_written"})
+            continue
+        if not os.path.isfile(resolved):
+            rejected.append({"path": resolved, "reason": "missing"})
+            continue
+
+        try:
+            with open(resolved, "rb") as fh:
+                data = fh.read()
+        except OSError as exc:
+            rejected.append({"path": resolved, "reason": "read_error", "error": str(exc)})
+            continue
+
+        verified.append(
+            {
+                "path": resolved,
+                "bytes": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        )
+
+    return {"verified": verified, "rejected": rejected}
 
 
 def _extract_output_tail(
@@ -1777,6 +1831,18 @@ def _run_single_child(
                 for p in paths
             }
         )[:40]
+        artifact_candidates = sorted(
+            {
+                p
+                for tid, paths in _files_written_map.items()
+                if tid == child_task_id
+                for p in paths
+            }
+        )
+        entry["artifacts"] = _verify_artifact_paths(
+            artifact_candidates,
+            allowed_paths=artifact_candidates,
+        )
 
         _output_tail = _extract_output_tail(result, max_entries=8, max_chars=600)
 
