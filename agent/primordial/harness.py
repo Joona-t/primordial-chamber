@@ -92,7 +92,23 @@ class PrimordialHarness:
     def record_chamber(self, chamber: ChamberRecord) -> dict[str, Any]:
         """Persist one normalized chamber record."""
 
-        return self.store.append("chamber_record", chamber.to_dict())
+        payload = chamber.to_dict()
+        metadata = payload.get("metadata", {})
+        if isinstance(metadata, dict) and metadata.get("id"):
+            payload["id"] = metadata["id"]
+            payload["status"] = metadata.get("status", "")
+        return self.store.append("chamber_record", payload)
+
+    def update_chamber(self, chamber: ChamberRecord) -> dict[str, Any]:
+        """Replace an existing chamber record by chamber id."""
+
+        payload = chamber.to_dict()
+        metadata = payload.get("metadata", {})
+        if not isinstance(metadata, dict) or not metadata.get("id"):
+            raise ValueError("Chamber metadata.id is required for update")
+        payload["id"] = metadata["id"]
+        payload["status"] = metadata.get("status", "")
+        return self.store.update_payload_by_id("chamber_record", metadata["id"], payload)
 
 
 def record_delegation_safely(

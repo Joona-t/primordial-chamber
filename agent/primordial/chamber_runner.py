@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+from datetime import datetime, timezone
 from typing import Any, Mapping
 
 from .absence import AbsenceState
@@ -9,6 +11,13 @@ from .chamber import ChamberRecord, ChamberVoice
 from .openclaw_adapter import OpenClawAgentResult
 from .refs import content_ref
 from .summary import ReversibleSummary
+
+
+def make_chamber_id(message: str, *, created_at: str | None = None) -> str:
+    stamp = created_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    digest = hashlib.sha256(f"{stamp}\n{message}".encode("utf-8")).hexdigest()[:16]
+    safe_stamp = stamp.replace(":", "").replace("-", "").replace(".", "")
+    return f"chamber:{safe_stamp}:{digest}"
 
 
 def _voice_ref(name: str, text: str, *, uri: str | None = None) -> dict[str, Any]:
@@ -25,6 +34,8 @@ def build_two_seat_chamber(
     openclaw_result: OpenClawAgentResult,
     hermes_session_id: str | None = None,
     metadata: Mapping[str, Any] | None = None,
+    chamber_id: str | None = None,
+    status: str | None = None,
 ) -> ChamberRecord:
     """Build a chamber record for one message answered by Codex and OpenClaw."""
 
@@ -70,6 +81,8 @@ def build_two_seat_chamber(
     chamber_metadata = dict(metadata or {})
     chamber_metadata.update(
         {
+            "id": chamber_id or make_chamber_id(message),
+            "status": status or ("sealed" if codex_summary and openclaw_result.ok else "pending"),
             "hermes_session_id": hermes_session_id or "",
             "openclaw": openclaw_result.to_dict(),
         }

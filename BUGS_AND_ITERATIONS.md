@@ -1,5 +1,13 @@
 # Bugs and Iterations
 
+## 2026-06-01 - Production Chamber Workflow
+
+Problem: The chamber orchestrator could write records but lacked production operator basics: stable IDs, pending/finalized lifecycle, list/show inspection, and documentation.
+
+Root cause: The first orchestrator pass focused on one-shot recording rather than the full operational loop needed when Codex text is only available after OpenClaw has already answered.
+
+Fix: Added chamber IDs/status, JSONL record update by id, start/finalize/list/show commands, operator docs, and tests for pending-to-sealed finalization.
+
 ## 2026-06-01 - Codex Chamber Orchestrator Tool
 
 Problem: The two-seat chamber existed as library pieces but did not have a Codex-owned orchestration entrypoint an operator could run.

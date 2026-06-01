@@ -31,6 +31,38 @@ class PrimordialStore:
             fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
         return record
 
+    def rewrite_records(self, records: list[Mapping[str, Any]]) -> None:
+        """Rewrite the JSONL store with already-normalized records."""
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_suffix(self.path.suffix + ".tmp")
+        with tmp.open("w", encoding="utf-8") as fh:
+            for record in records:
+                fh.write(json.dumps(dict(record), ensure_ascii=False, sort_keys=True) + "\n")
+        tmp.replace(self.path)
+
+    def update_payload_by_id(
+        self,
+        record_type: str,
+        record_id: str,
+        payload: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Replace the payload for the newest matching record id."""
+
+        records = self.list_records()
+        payload_dict = validate_record(dict(payload))
+        replacement = {"type": record_type, "payload": payload_dict}
+        for i in range(len(records) - 1, -1, -1):
+            record = records[i]
+            if record.get("type") != record_type:
+                continue
+            existing = record.get("payload")
+            if isinstance(existing, dict) and existing.get("id") == record_id:
+                records[i] = replacement
+                self.rewrite_records(records)
+                return replacement
+        raise KeyError(f"{record_type} record not found: {record_id}")
+
     def iter_records(self, *, record_type: str | None = None) -> Iterable[dict[str, Any]]:
         if not self.path.exists():
             return
@@ -45,3 +77,10 @@ class PrimordialStore:
 
     def list_records(self, *, record_type: str | None = None) -> list[dict[str, Any]]:
         return list(self.iter_records(record_type=record_type))
+
+    def find_by_id(self, record_type: str, record_id: str) -> dict[str, Any] | None:
+        for record in reversed(self.list_records(record_type=record_type)):
+            payload = record.get("payload")
+            if isinstance(payload, dict) and payload.get("id") == record_id:
+                return record
+        return None

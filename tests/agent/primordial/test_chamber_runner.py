@@ -1,4 +1,4 @@
-from agent.primordial.chamber_runner import build_two_seat_chamber
+from agent.primordial.chamber_runner import build_two_seat_chamber, make_chamber_id
 from agent.primordial.harness import PrimordialHarness
 from agent.primordial.openclaw_adapter import OpenClawAgentResult
 from agent.primordial.store import PrimordialStore
@@ -24,6 +24,8 @@ def test_build_two_seat_chamber_creates_codex_and_openclaw_voices():
     assert data["voices"][0]["source_refs"][0]["uri"] == "hermes://session/hermes-1/voice/codex"
     assert data["voices"][1]["source_refs"][0]["uri"] == "openclaw://session/agent:main:test"
     assert data["synthesis"]["source_refs"]
+    assert data["metadata"]["id"].startswith("chamber:")
+    assert data["metadata"]["status"] == "sealed"
 
 
 def test_build_two_seat_chamber_marks_absent_outputs():
@@ -42,6 +44,15 @@ def test_build_two_seat_chamber_marks_absent_outputs():
     metadata = chamber.to_dict()["metadata"]
     assert metadata["codex_summary_state"] == "not_generated"
     assert metadata["openclaw_summary_state"] == "unresolved"
+    assert metadata["status"] == "pending"
+
+
+def test_make_chamber_id_is_stable_for_same_stamp():
+    a = make_chamber_id("hello", created_at="2026-06-01T00:00:00Z")
+    b = make_chamber_id("hello", created_at="2026-06-01T00:00:00Z")
+
+    assert a == b
+    assert a.startswith("chamber:")
 
 
 def test_chamber_record_round_trips_through_store(tmp_path):

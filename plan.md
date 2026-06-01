@@ -225,6 +225,35 @@ python3 -m compileall -q agent/primordial scripts/primordial_chamber.py tests/ag
 
 ---
 
+# Production Chamber Workflow Plan
+
+Date: 2026-06-01
+Status: implemented
+
+## Scope
+
+Harden the Codex chamber orchestrator into a production-usable operator workflow.
+
+## Completed Tasks
+
+- [x] Add stable chamber ids.
+- [x] Add chamber status metadata.
+- [x] Add append-store record replacement by id.
+- [x] Add pending `start` command.
+- [x] Add `finalize` command to seal Codex text later.
+- [x] Add `list` command for inspection.
+- [x] Add `show` command for inspection.
+- [x] Add operator documentation.
+- [x] Add tests for stable ids.
+- [x] Add tests for pending-to-sealed finalization.
+- [x] Add tests for list/show.
+- [x] Run Primordial tests.
+- [x] Run compile check.
+- [x] Run delegation regression tests.
+- [x] Run local CLI dry run for OpenClaw unavailable path.
+
+---
+
 # Two-Seat Chamber Plan
 
 Date: 2026-06-01

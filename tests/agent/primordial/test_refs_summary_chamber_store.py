@@ -62,3 +62,18 @@ def test_store_appends_and_filters(tmp_path):
     summaries = store.list_records(record_type="summary")
     assert len(summaries) == 1
     assert summaries[0]["payload"]["summary"] == "short"
+
+
+def test_store_updates_payload_by_id(tmp_path):
+    store = PrimordialStore(tmp_path / "records.jsonl")
+    store.append("chamber_record", {"id": "chamber:1", "summary": "old"})
+
+    updated = store.update_payload_by_id(
+        "chamber_record",
+        "chamber:1",
+        {"id": "chamber:1", "summary": "new"},
+    )
+
+    assert updated["payload"]["summary"] == "new"
+    assert store.find_by_id("chamber_record", "chamber:1")["payload"]["summary"] == "new"
+    assert len(store.list_records(record_type="chamber_record")) == 1
