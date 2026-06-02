@@ -10,6 +10,127 @@ Primordial's useful systems pattern for Hermes is not a large runtime transplant
 5. local JSONL storage for these records;
 6. verification metadata for subagent artifacts before a parent trusts them.
 
+---
+
+# LLM Council Adaptation Research
+
+Date: 2026-06-02
+Status: research complete; planning complete; do not implement yet
+
+## Source Architecture
+
+Karpathy's `llm-council` demonstrates a three-stage deliberation architecture:
+
+1. Stage 1: collect independent first opinions from multiple LLMs.
+2. Stage 2: anonymize those responses and ask the same council to review/rank them.
+3. Stage 3: ask a chairman model to synthesize a final answer from the original responses and reviews.
+
+The implementation details in that repository are OpenRouter API calls, a FastAPI backend, JSON file storage, and a React frontend. The useful architecture for Hermes is not the API transport or UI. The useful architecture is the staged council protocol.
+
+Primary source:
+
+- `karpathy/llm-council`: https://github.com/karpathy/llm-council
+- `backend/council.py`: https://github.com/karpathy/llm-council/blob/master/backend/council.py
+
+## Mapping To Primordial Chamber
+
+Current Primordial chamber:
+
+```text
+message -> Codex voice + OpenClaw voice -> chamber_record
+```
+
+Council-adapted Primordial chamber:
+
+```text
+message
+  -> Stage 1: collect independent CLI seat answers
+  -> Stage 2: ask seats to review anonymized answers
+  -> Stage 3: Codex chairman synthesis
+  -> Persist staged council_chamber_record
+```
+
+The chamber should preserve Karpathy's Stage 1 / Stage 2 / Stage 3 pattern, but replace OpenRouter model calls with local CLI-backed seats:
+
+- Codex / Hermes
+- OpenClaw
+- Claude fork
+- future local agents
+
+Each seat should satisfy one narrow adapter contract:
+
+```text
+run_seat(prompt, session_key, timeout) -> SeatResult
+```
+
+The council runner should not care whether the seat is OpenClaw, Claude, Codex, or another local harness.
+
+## Primordial Advantage
+
+Karpathy's repository shows the working deliberation pattern. Primordial makes that pattern production-auditable:
+
+- typed absence for missing, failed, timed-out, invalid, or unavailable seat output;
+- source refs for every answer, review, and synthesis;
+- sealed lifecycle status;
+- stable hashes for evidence;
+- append-only ledger compatibility;
+- no silently dropped responses;
+- cross-harness comparison without a shared API provider.
+
+In short:
+
+```text
+LLM Council = deliberation pattern
+Primordial = deliberation pattern + provenance + failure semantics + auditability
+```
+
+## Schema Implication
+
+The current two-voice `chamber_record` should remain compatible, but staged council runs need a schema-versioned record:
+
+```json
+{
+  "schema_version": 2,
+  "id": "chamber:...",
+  "status": "pending|reviewing|synthesizing|sealed|failed",
+  "question": "...",
+  "stages": {
+    "stage1_first_opinions": [],
+    "stage2_peer_reviews": [],
+    "stage3_chairman_synthesis": {}
+  },
+  "seats": [],
+  "source_refs": [],
+  "metadata": {}
+}
+```
+
+Stage outputs should carry seat ids, anonymized labels, summary text or typed absence, source refs, and review ranking metadata. Ranking parsing should preserve Karpathy's explicit final ranking convention while failing closed to typed absence when the ranking cannot be parsed.
+
+## Research Verdict
+
+Adapt the architecture, not the transport.
+
+Keep:
+
+- independent first opinions;
+- anonymized peer review;
+- chairman synthesis.
+
+Replace:
+
+- OpenRouter API calls;
+- web-backend coupling;
+- provider-specific model list.
+
+Enhance:
+
+- typed absence;
+- source refs;
+- staged chamber schema;
+- CLI seat registry;
+- persistent audit ledger.
+
 ## Hermes integration surface
 Hermes already has durable memory, session DB, delegation, kanban artifacts, and context compression. The safest implementation path is a `agent.primordial` support package, not a new toolset or prompt mutation. This keeps prompt caching stable and makes the primitives testable in isolation.
 

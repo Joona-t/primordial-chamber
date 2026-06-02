@@ -3,6 +3,98 @@
 ## Scope
 Implement the forge-lite primitives from the Primordial audit as deterministic Hermes support code, plus a delegation artifact verification seam.
 
+---
+
+# LLM Council Chamber Adaptation Plan
+
+Date: 2026-06-02
+Status: planned; do not implement yet
+
+## Scope
+
+Adapt Karpathy's `llm-council` architecture into the Primordial chamber by adding a staged council runner over local CLI-backed seats.
+
+The implementation should preserve the useful council protocol:
+
+```text
+Stage 1: independent first opinions
+Stage 2: anonymized peer review and ranking
+Stage 3: chairman synthesis
+```
+
+It should replace API model calls with local seat adapters and persist the result as a schema-versioned Primordial council chamber record.
+
+## Non-Goals
+
+- No OpenRouter dependency.
+- No FastAPI backend transplant.
+- No React UI transplant.
+- No remote API requirement.
+- No provider-specific model registry.
+- No replacement of existing two-seat `chamber_record` compatibility.
+
+## Implementation Tasks
+
+- [x] Add `agent/primordial/seats.py`.
+- [x] Define `SeatSpec`.
+- [x] Define `SeatResult`.
+- [x] Move OpenClaw invocation behind the seat adapter interface.
+- [x] Add Codex/Hermes and Claude placeholder seat adapters without hard dependencies.
+- [x] Add `agent/primordial/council_runner.py`.
+- [x] Implement Stage 1 first-opinion collection.
+- [x] Implement deterministic anonymous labels: `Response A`, `Response B`, etc.
+- [x] Implement Stage 2 review prompt builder.
+- [x] Implement Stage 2 ranking parser using Karpathy's `FINAL RANKING:` convention.
+- [x] Implement Stage 3 chairman synthesis prompt builder.
+- [x] Add schema version `2` for staged council chamber records.
+- [x] Store staged records as `council_chamber_record`.
+- [x] Preserve typed absence for every failed seat, review, or synthesis.
+- [x] Preserve source refs for every stage.
+- [x] Keep old `chamber_record` compatibility.
+- [x] Extend `scripts/primordial_chamber.py` with `council run`.
+- [x] Extend `scripts/primordial_chamber.py` with `council show`.
+- [x] Add fake two-seat Stage 1 success test.
+- [x] Add one-seat-failure typed absence test.
+- [x] Add review-label anonymization test.
+- [x] Add valid `FINAL RANKING:` parser test.
+- [x] Add chairman synthesis persistence/source-ref test.
+- [x] Add no-response-disappears-silently test.
+- [x] Update `BUGS_AND_ITERATIONS.md`.
+- [x] Run targeted Primordial tests.
+- [x] Run compile check.
+- [x] Review diff.
+
+## Expected Files
+
+- Create: `agent/primordial/seats.py`
+- Create: `agent/primordial/council_runner.py`
+- Create: `tests/agent/primordial/test_seats.py`
+- Create: `tests/agent/primordial/test_council_runner.py`
+- Modify: `agent/primordial/openclaw_adapter.py`
+- Modify: `agent/primordial/harness.py`
+- Modify: `agent/primordial/__init__.py`
+- Modify: `scripts/primordial_chamber.py`
+- Modify: `BUGS_AND_ITERATIONS.md`
+- Modify: `research.md`
+- Modify: `plan.md`
+
+## Verification Commands
+
+```bash
+pytest tests/agent/primordial -o 'addopts=' -q
+python3 -m compileall -q agent/primordial scripts/primordial_chamber.py tests/agent/primordial
+```
+
+## Approval Gate
+
+Implementation may begin only after Joona explicitly says:
+
+```text
+implement it all
+```
+
+Do not implement yet.
+
 ## Tasks
 - [x] Add `agent.primordial` package.
 - [x] Implement typed absence states and transition validation.

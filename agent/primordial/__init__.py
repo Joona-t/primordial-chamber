@@ -11,6 +11,13 @@ from .refs import Ref, content_ref, file_ref
 from .summary import ReversibleSummary
 from .chamber import ChamberRecord, ChamberVoice
 from .chamber_runner import build_two_seat_chamber
+from .council_runner import (
+    CouncilRunResult,
+    CouncilRunner,
+    build_review_prompt,
+    build_synthesis_prompt,
+    parse_final_ranking,
+)
 from .store import PrimordialStore
 from .harness import PrimordialHarness, classify_summary_absence, record_delegation_safely
 from .openclaw_adapter import (
@@ -20,6 +27,15 @@ from .openclaw_adapter import (
     run_openclaw_agent,
 )
 from .orchestrator import ChamberOrchestrationResult, CodexChamberOrchestrator
+from .seats import (
+    SeatResult,
+    SeatSpec,
+    cli_seat,
+    openclaw_seat,
+    placeholder_seat,
+    run_seat,
+    static_seat,
+)
 
 __all__ = [
     "AbsenceState",
@@ -32,6 +48,11 @@ __all__ = [
     "ChamberRecord",
     "ChamberVoice",
     "build_two_seat_chamber",
+    "CouncilRunResult",
+    "CouncilRunner",
+    "build_review_prompt",
+    "build_synthesis_prompt",
+    "parse_final_ranking",
     "PrimordialStore",
     "PrimordialHarness",
     "classify_summary_absence",
@@ -42,4 +63,11 @@ __all__ = [
     "run_openclaw_agent",
     "ChamberOrchestrationResult",
     "CodexChamberOrchestrator",
+    "SeatResult",
+    "SeatSpec",
+    "cli_seat",
+    "openclaw_seat",
+    "placeholder_seat",
+    "run_seat",
+    "static_seat",
 ]

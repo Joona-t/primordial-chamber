@@ -110,6 +110,11 @@ class PrimordialHarness:
         payload["status"] = metadata.get("status", "")
         return self.store.update_payload_by_id("chamber_record", metadata["id"], payload)
 
+    def record_council_chamber(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """Persist one staged council chamber record."""
+
+        return self.store.append("council_chamber_record", dict(payload))
+
 
 def record_delegation_safely(
     *,

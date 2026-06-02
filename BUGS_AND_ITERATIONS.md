@@ -1,5 +1,13 @@
 # Bugs and Iterations
 
+## 2026-06-02 - LLM Council Chamber Adaptation
+
+Problem: The chamber could record two voices but did not implement Karpathy's staged council pattern of independent first opinions, anonymized review/ranking, and chairman synthesis.
+
+Root cause: The v1 chamber focused on OpenClaw/Codex persistence and operator lifecycle before adding a generic seat registry or staged deliberation runner.
+
+Fix: Added local seat adapters, a three-stage council runner, schema-versioned `council_chamber_record` persistence, CLI `council run/show`, and tests for ranking, anonymization, typed absence, chairman override, and store round-trip.
+
 ## 2026-06-01 - Chamber Production Audit
 
 Problem: The chamber workflow had passing unit tests but no written production-readiness audit after applying it against a live OpenClaw path.
