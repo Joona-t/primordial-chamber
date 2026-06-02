@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "primordial-chamber"
+version = "0.1.0"
+description = "Local CLI council chamber orchestration with typed absence and audit records."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Joona" }]
+
+[project.scripts]
+primordial-chamber = "primordial_chamber.cli:main"
+
+[tool.setuptools]
+packages = ["primordial_chamber"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
